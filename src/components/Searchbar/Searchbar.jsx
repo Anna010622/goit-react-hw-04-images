@@ -8,8 +8,8 @@ import {
   SearchFormInput,
 } from './Searchbar.styled';
 
-export const Searchbar = ({ searchValue }) => {
-  const handleSubmit = e => {
+export const Searchbar = ({ handleSubmit }) => {
+  const onSubmit = e => {
     e.preventDefault();
     const value = e.target.children[1].value.trim().toLowerCase();
     if (value === '') {
@@ -17,13 +17,12 @@ export const Searchbar = ({ searchValue }) => {
 
       return;
     }
-    searchValue(value);
-    e.target.reset();
+    handleSubmit(value);
   };
 
   return (
     <Header>
-      <SearchForm onSubmit={handleSubmit}>
+      <SearchForm onSubmit={onSubmit}>
         <SearchFormButton type="submit">
           <AiOutlineSearch />
         </SearchFormButton>
@@ -40,5 +39,5 @@ export const Searchbar = ({ searchValue }) => {
 };
 
 Searchbar.propTypes = {
-  searchValue: PropTypes.func.isRequired,
+  handleSubmit: PropTypes.func.isRequired,
 };

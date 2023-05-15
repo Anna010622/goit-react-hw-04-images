@@ -8,13 +8,13 @@ import { Button } from 'components/Button/Button';
 import { getImages } from 'api/api';
 import { Loader } from 'components/Loader/Loader';
 import { Modal } from 'components/Modal/Modal';
-import { scroll } from 'components/utils';
+import { scroll } from 'utils';
 
 export class App extends React.Component {
   state = {
     value: '',
     images: null,
-    visible: false,
+    totalImages: null,
     page: 1,
     isLoader: false,
     showModal: false,
@@ -22,52 +22,55 @@ export class App extends React.Component {
   };
 
   async componentDidUpdate(prevProps, prevState) {
-    if (this.state.value !== prevState.value && this.state.value !== '') {
+    if (
+      this.state.value !== prevState.value ||
+      this.state.page !== prevState.page
+    ) {
       try {
-        this.setState({ isLoader: true, images: null, visible: false });
-        const data = await getImages(this.state.value, 1);
-        this.setState({ images: data.hits, page: 2 });
-        if (data.hits.length === 0) {
-          this.setState({ images: null });
+        this.setState({ isLoader: true });
+        const data = await getImages(this.state.value, this.state.page);
+
+        if (!data.totalHits) {
+          this.setState({ totalImages: null });
           return toast.error(
             'There are no such images. Please enter another keyword',
             { autoClose: 3000 }
           );
         }
+
+        this.setState(prevState => ({
+          images: [...prevState.images, ...data.hits],
+          totalImages: data.totalHits,
+        }));
+
+        if (this.state.images.length === data.totalHits) {
+          this.setState({ totalImages: null });
+        }
       } catch (error) {
         console.log(error);
       } finally {
         this.setState({ isLoader: false });
+        scroll();
       }
     }
   }
 
-  setSearchValue = value => {
-    this.setState({ value });
+  handleSubmit = value => {
+    if (this.state.value === value) {
+      return toast.info(`You are already viewing ${value}`, {
+        autoClose: 3000,
+      });
+    }
+    this.setState({ value, images: [], page: 1 });
   };
 
   handleLoadMore = async () => {
-    try {
-      this.setState({ isLoader: true });
+    this.setState(prevState => ({ page: prevState.page + 1 }));
 
-      const data = await getImages(this.state.value, this.state.page);
-
-      this.setState(prevState => ({
-        images: [...prevState.images, ...data.hits],
-        page: prevState.page + 1,
-      }));
-
-      if (this.state.images.length === data.totalHits) {
-        this.setState({ visible: true });
-        toast.info(
-          "We're sorry, but you've reached the end of the search results"
-        );
-      }
-    } catch (error) {
-      console.log(error);
-    } finally {
-      this.setState({ isLoader: false });
-      scroll();
+    if (this.state.images.length === this.state.totalImages) {
+      toast.info(
+        "We're sorry, but you've reached the end of the search results"
+      );
     }
   };
 
@@ -84,7 +87,7 @@ export class App extends React.Component {
   render() {
     return (
       <AppContainer>
-        <Searchbar searchValue={this.setSearchValue} />
+        <Searchbar handleSubmit={this.handleSubmit} />
 
         {this.state.images && (
           <ImageGallery
@@ -95,9 +98,11 @@ export class App extends React.Component {
           />
         )}
 
-        {this.state.images && !this.state.isLoader && !this.state.visible && (
-          <Button handleLoadMore={this.handleLoadMore} />
-        )}
+        {this.state.images &&
+          !this.state.isLoader &&
+          this.state.totalImages && (
+            <Button handleLoadMore={this.handleLoadMore} />
+          )}
 
         {this.state.isLoader && <Loader />}
 
