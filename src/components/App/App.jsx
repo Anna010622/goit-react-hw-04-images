@@ -50,7 +50,6 @@ export class App extends React.Component {
         console.log(error);
       } finally {
         this.setState({ isLoader: false });
-        scroll();
       }
     }
   }
@@ -66,6 +65,10 @@ export class App extends React.Component {
 
   handleLoadMore = async () => {
     this.setState(prevState => ({ page: prevState.page + 1 }));
+
+    setTimeout(() => {
+      scroll(this.state.totalImages / 3);
+    }, 1000);
 
     if (this.state.images.length === this.state.totalImages) {
       toast.info(
