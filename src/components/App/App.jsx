@@ -35,13 +35,6 @@ export const App = () => {
           }
           setImages(prevState => [...prevState, ...data.hits]);
           setTotalImages(data.totalHits);
-
-          if (images.length === data.totalHits) {
-            toast.info(
-              "We're sorry, but you've reached the end of the search results"
-            );
-            setTotalImages(null);
-          }
         }
 
         fetchAPI();
@@ -52,6 +45,12 @@ export const App = () => {
       }
     }
   }, [page, value]);
+
+  useEffect(() => {
+    if (images?.length === totalImages) {
+      setTotalImages(null);
+    }
+  }, [images?.length, totalImages]);
 
   const handleSubmit = newValue => {
     if (value === newValue) {
