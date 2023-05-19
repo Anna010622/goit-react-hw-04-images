@@ -1,4 +1,4 @@
-export const scroll = page => {
+export const scroll = () => {
   const { height: cardHeight } = document
     .querySelector('.gallery')
     .firstElementChild.getBoundingClientRect();

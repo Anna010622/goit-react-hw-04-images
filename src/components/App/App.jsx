@@ -1,4 +1,4 @@
-import React from 'react';
+import { useEffect, useState } from 'react';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { AppContainer } from './App.styled';
@@ -10,112 +10,97 @@ import { Loader } from 'components/Loader/Loader';
 import { Modal } from 'components/Modal/Modal';
 import { scroll } from 'utils';
 
-export class App extends React.Component {
-  state = {
-    value: '',
-    images: null,
-    totalImages: null,
-    page: 1,
-    isLoader: false,
-    showModal: false,
-    modalImage: null,
-  };
+export const App = () => {
+  const [value, setValue] = useState('');
+  const [images, setImages] = useState(null);
+  const [totalImages, setTotalImages] = useState(null);
+  const [page, setPage] = useState(1);
+  const [isLoader, setIsLoader] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [modalImage, setModalImage] = useState(null);
 
-  async componentDidUpdate(prevProps, prevState) {
-    if (
-      this.state.value !== prevState.value ||
-      this.state.page !== prevState.page
-    ) {
+  useEffect(() => {
+    if (value !== '') {
       try {
-        this.setState({ isLoader: true });
-        const data = await getImages(this.state.value, this.state.page);
+        setIsLoader(true);
+        async function fetchAPI() {
+          const data = await getImages(value, page);
 
-        if (!data.totalHits) {
-          this.setState({ totalImages: null });
-          return toast.error(
-            'There are no such images. Please enter another keyword',
-            { autoClose: 3000 }
-          );
+          if (!data.totalHits) {
+            setTotalImages(null);
+            return toast.error(
+              'There are no such images. Please enter another keyword',
+              { autoClose: 3000 }
+            );
+          }
+          setImages(prevState => [...prevState, ...data.hits]);
+          setTotalImages(data.totalHits);
+
+          if (images.length === data.totalHits) {
+            toast.info(
+              "We're sorry, but you've reached the end of the search results"
+            );
+            setTotalImages(null);
+          }
         }
 
-        this.setState(prevState => ({
-          images: [...prevState.images, ...data.hits],
-          totalImages: data.totalHits,
-        }));
-
-        if (this.state.images.length === data.totalHits) {
-          this.setState({ totalImages: null });
-        }
+        fetchAPI();
       } catch (error) {
         console.log(error);
       } finally {
-        this.setState({ isLoader: false });
+        setIsLoader(false);
       }
     }
-  }
+  }, [page, value]);
 
-  handleSubmit = value => {
-    if (this.state.value === value) {
-      return toast.info(`You are already viewing ${value}`, {
+  const handleSubmit = newValue => {
+    if (value === newValue) {
+      return toast.info(`You are already viewing ${newValue}`, {
         autoClose: 3000,
       });
     }
-    this.setState({ value, images: [], page: 1 });
+    setValue(newValue);
+    setImages([]);
+    setPage(1);
   };
 
-  handleLoadMore = async () => {
-    this.setState(prevState => ({ page: prevState.page + 1 }));
+  const handleLoadMore = () => {
+    setPage(prevState => prevState + 1);
 
     setTimeout(() => {
-      scroll(this.state.totalImages / 3);
+      scroll();
     }, 1000);
-
-    if (this.state.images.length === this.state.totalImages) {
-      toast.info(
-        "We're sorry, but you've reached the end of the search results"
-      );
-    }
   };
 
-  setModalImage = largeUrl => {
-    this.setState({
-      modalImage: largeUrl,
-    });
+  const toggleModal = () => {
+    setShowModal(prevState => !prevState);
   };
 
-  toggleModal = () => {
-    this.setState(({ showModal }) => ({ showModal: !showModal }));
-  };
+  return (
+    <AppContainer>
+      <Searchbar handleSubmit={handleSubmit} />
 
-  render() {
-    return (
-      <AppContainer>
-        <Searchbar handleSubmit={this.handleSubmit} />
+      {images && (
+        <ImageGallery
+          className="gallery"
+          images={images}
+          setUrl={setModalImage}
+          openModal={toggleModal}
+        />
+      )}
 
-        {this.state.images && (
-          <ImageGallery
-            className="gallery"
-            images={this.state.images}
-            setUrl={this.setModalImage}
-            openModal={this.toggleModal}
-          />
-        )}
+      {images && !isLoader && totalImages && (
+        <Button handleLoadMore={handleLoadMore} />
+      )}
 
-        {this.state.images &&
-          !this.state.isLoader &&
-          this.state.totalImages && (
-            <Button handleLoadMore={this.handleLoadMore} />
-          )}
+      {isLoader && <Loader />}
 
-        {this.state.isLoader && <Loader />}
-
-        {this.state.showModal && (
-          <Modal onClose={this.toggleModal}>
-            <img src={this.state.modalImage} alt={this.state.value} />
-          </Modal>
-        )}
-        <ToastContainer />
-      </AppContainer>
-    );
-  }
-}
+      {showModal && (
+        <Modal onClose={toggleModal}>
+          <img src={modalImage} alt={value} />
+        </Modal>
+      )}
+      <ToastContainer />
+    </AppContainer>
+  );
+};

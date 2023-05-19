@@ -28,8 +28,3 @@ img {
   height: 100%;
   object-fit: cover;
 }
-
-.no-scroll {
-  overflow: hidden;
-  height: 100vh;
-}
